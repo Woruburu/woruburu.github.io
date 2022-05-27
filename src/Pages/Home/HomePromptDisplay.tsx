@@ -54,13 +54,15 @@ const HomePromptDisplay: Component<{ prompt: HomePrompt }> = (props) => {
             </Show>
             <For each={props.prompt.Tags.split(",")}>
               {(tag) => (
-                <Badge
-                  textTransform={"lowercase"}
-                  colorScheme={"primary"}
-                  marginLeft={"$1"}
-                >
-                  {tag.trim()}
-                </Badge>
+                <Anchor as={Link} href={`/?tag=${tag.trim()}`}>
+                  <Badge
+                    textTransform={"lowercase"}
+                    colorScheme={"primary"}
+                    marginLeft={"$1"}
+                  >
+                    {tag.trim()}
+                  </Badge>
+                </Anchor>
               )}
             </For>
           </Text>

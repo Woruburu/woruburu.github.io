@@ -118,13 +118,20 @@ export const SqljsServiceContextProvider: ParentComponent = (props) => {
               when={loadingValue() && loadingMax()}
               fallback={"Loading Database Engine"}
             >
-              <Stack gap={"$3"}>
-                <>Downloading Database...</>
-                <Flex>
-                  <Spinner m={"auto"} size={"xs"} />
-                </Flex>
-              </Stack>
-              (This may take a while)
+              {(loadingMax) => (
+                <>
+                  <Stack gap={"$3"}>
+                    <>
+                      Downloading Database (
+                      {(loadingMax / (1024 * 1024)).toFixed(2)}MB)...
+                    </>
+                    <Flex>
+                      <Spinner m={"auto"} size={"xs"} />
+                    </Flex>
+                  </Stack>
+                  (This may take a while)
+                </>
+              )}
             </Show>
           </Container>
         </>

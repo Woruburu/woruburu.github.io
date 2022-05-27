@@ -22,18 +22,23 @@ import {
   HomePrompt,
   NsfwSearch,
   NsfwSearchType,
+  SearchOptions,
   TagSearchOptions,
   TagSearchOptionsType,
 } from "Services/SqljsService";
+import { useSearchParams } from "solid-app-router";
 import {
   Component,
   createEffect,
   createSignal,
   For,
   Match,
+  onMount,
+  Show,
   Switch,
   useContext,
 } from "solid-js";
+import BottomNav from "./BottomNav";
 import HomePromptDisplay from "./HomePromptDisplay";
 
 type SearchState =
@@ -43,6 +48,7 @@ type SearchState =
 
 const Home: Component = () => {
   const sql = useContext(SqljsServiceContext);
+  const [searchParams] = useSearchParams();
 
   const [searchState, setSearchState] = createSignal<SearchState>({
     type: "Loading",
@@ -51,28 +57,76 @@ const Home: Component = () => {
   const [nsfwSearch, setNsfwSearch] = createSignal<NsfwSearchType>(
     NsfwSearch[0]
   );
-  const [tagSearch, setTagSearch] = createSignal<string>("");
+  const [tagSearch, setTagSearch] = createSignal<string>(
+    searchParams.tag ?? ""
+  );
+
+  const [totalPages, setTotalPages] = createSignal<number>();
+
+  const getPageFromParams = () => {
+    const parsedInt = Number.parseInt(searchParams.page ?? "0");
+    console.log(parsedInt);
+    return Number.isNaN(parsedInt) ? 0 : parsedInt;
+  };
+
+  const [currentPage, setCurrentPage] = createSignal<number>(
+    getPageFromParams()
+  );
+
+  const searchOptions = (): SearchOptions => ({
+    title: titleSearch(),
+    nsfw: nsfwSearch(),
+    tags: tagSearch(),
+    tagSearchOption: tagSearchOption(),
+    matchTagsExactly: matchTagsExactly(),
+    reverseSearch: reverseSearch(),
+    page: currentPage(),
+  });
+
+  createEffect((prev) => {
+    if (prev === searchParams.tag) {
+      return searchParams.tag;
+    }
+
+    const tag = searchParams.tag ?? "";
+    setTagSearch(tag);
+    performSearch({
+      ...searchOptions(),
+      tags: tag,
+    });
+    return searchParams.tag;
+  }, searchParams.tag);
+
+  createEffect((prev) => {
+    if (prev === searchParams.page) {
+      return searchParams.page;
+    }
+
+    const page = getPageFromParams();
+    setCurrentPage(page);
+    performSearch({
+      ...searchOptions(),
+      page: page,
+    });
+    return searchParams.page;
+  }, searchParams.page);
+
   const [tagSearchOption, setTagSearchOption] =
     createSignal<TagSearchOptionsType>(TagSearchOptions[0]);
   const [matchTagsExactly, setMatchTagsExactly] = createSignal<boolean>(true);
   const [reverseSearch, setReverseSearch] = createSignal<boolean>(false);
 
-  const performSearch = async () => {
+  const performSearch = (options: SearchOptions) => {
     if (sql.type === "Loaded") {
       setSearchState({ type: "Loading" });
       (async () => {
         try {
+          const result = await sql.service.search(options);
           setSearchState({
             type: "Loaded",
-            prompts: await sql.service.search({
-              title: titleSearch(),
-              nsfw: nsfwSearch(),
-              tags: tagSearch(),
-              tagSearchOption: tagSearchOption(),
-              matchTagsExactly: matchTagsExactly(),
-              reverseSearch: reverseSearch(),
-            }),
+            prompts: result.prompts,
           });
+          setTotalPages(result.pages);
         } catch (e) {
           setSearchState({ type: "Error", error: (e as Error).toString() });
         }
@@ -80,8 +134,8 @@ const Home: Component = () => {
     }
   };
 
-  createEffect(() => {
-    performSearch();
+  onMount(() => {
+    performSearch(searchOptions());
   });
 
   const isError = () => {
@@ -94,12 +148,14 @@ const Home: Component = () => {
     return state.type === "Loaded" && state;
   };
 
+  const isLoading = () => searchState().type === "Loading";
+
   return (
     <Stack direction={"column"} gap={"$3"}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          performSearch();
+          performSearch({ ...searchOptions(), page: 0 });
         }}
       >
         <Flex direction={{ "@initial": "column", "@md": "row" }}>
@@ -109,11 +165,16 @@ const Home: Component = () => {
             gap="$3"
           >
             <Input
+              disabled={isLoading()}
               value={titleSearch()}
               placeholder="Search Title"
-              onChange={(e) => setTitleSearch(e.currentTarget.value)}
+              onInput={(e) => setTitleSearch(e.currentTarget.value)}
             />
-            <Select defaultValue={nsfwSearch()} onChange={setNsfwSearch}>
+            <Select
+              disabled={isLoading()}
+              defaultValue={nsfwSearch()}
+              onChange={setNsfwSearch}
+            >
               <SelectTrigger>
                 <SelectValue />
                 <SelectIcon />
@@ -132,11 +193,13 @@ const Home: Component = () => {
               </SelectContent>
             </Select>
             <Input
+              disabled={isLoading()}
               value={tagSearch()}
               placeholder="Tags (comma delimited)"
-              onChange={(e) => setTagSearch(e.currentTarget.value)}
+              onInput={(e) => setTagSearch(e.currentTarget.value)}
             />
             <Checkbox
+              disabled={isLoading()}
               checked={matchTagsExactly()}
               onChange={(
                 e: Event & {
@@ -148,6 +211,7 @@ const Home: Component = () => {
               Match Tags Exactly
             </Checkbox>
             <Select
+              disabled={isLoading()}
               defaultValue={tagSearchOption()}
               onChange={setTagSearchOption}
             >
@@ -169,6 +233,7 @@ const Home: Component = () => {
               </SelectContent>
             </Select>
             <Checkbox
+              disabled={isLoading()}
               checked={reverseSearch()}
               onChange={(
                 e: Event & {
@@ -186,7 +251,9 @@ const Home: Component = () => {
             pl={{ "@md": "$3" }}
             direction={{ "@initial": "row-reverse", "@md": "column" }}
           >
-            <Button type="submit">Search</Button>
+            <Button type="submit" loading={isLoading()} disabled={isLoading()}>
+              Search
+            </Button>
             <Button
               type="button"
               mr={{ "@initial": "auto", "@md": "initial" }}
@@ -222,6 +289,12 @@ const Home: Component = () => {
           )}
         </Match>
       </Switch>
+
+      <Show when={totalPages()}>
+        {(totalPages) => (
+          <BottomNav currentPage={currentPage()} totalPages={totalPages} />
+        )}
+      </Show>
     </Stack>
   );
 };

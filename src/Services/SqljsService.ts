@@ -3,6 +3,8 @@ import { QueryExecResult, SqlValue } from "sql.js";
 import { v4 } from "uuid";
 
 export default class SqljsService {
+  private pageSize = 12;
+
   private worker: Worker;
 
   constructor(worker: Worker) {
@@ -21,16 +23,14 @@ export default class SqljsService {
       : undefined;
 
   private queryDb = <T>(
-    exec: { sql: string; params?: object },
+    exec: { sql: string; params?: Record<string, unknown> },
     map: (vals: SqlValue[]) => T
   ): Promise<T[]> => {
     return new Promise((resolve, reject) => {
       try {
         const requestId = v4();
-        console.log(requestId);
 
         this.worker.onmessage = (e) => {
-          console.log(e);
           if (e.data.id == requestId) {
             if (e.data.error) {
               reject(e.data.error);
@@ -57,23 +57,26 @@ export default class SqljsService {
     });
   };
 
-  search = async (options: SearchOptions): Promise<HomePrompt[]> => {
+  search = async (
+    options: SearchOptions
+  ): Promise<{ pages: number; prompts: HomePrompt[] }> => {
     const titleSearch =
-      options.title !== "" ? ` AND Title LIKE "%${options.title}%"` : "";
+      options.title !== "" ? ` AND Title LIKE '%'||$title||'%'` : "";
 
     const nsfwSearch =
       options.nsfw !== "SFW & NSFW"
         ? ` AND Nsfw = ${options.nsfw === "NSFW only" ? "1" : "0"}`
         : "";
 
-    const tagList = options.tags
+    const tags = options.tags
       .split(",")
       .map((tag) => tag.trim())
-      .filter(Boolean)
-      .map((tag) =>
+      .filter(Boolean);
+    const tagList = tags
+      .map((tag, idx) =>
         options.matchTagsExactly
-          ? `(Tags LIKE '${tag},%' OR Tags LIKE '%, ${tag},%')`
-          : `Tags LIKE '%${tag}%'`
+          ? `(Tags LIKE $tag${idx}||',%' OR Tags LIKE '%, '||$tag${idx}||',%')`
+          : `Tags LIKE '%'||$tag${idx}||'%'`
       )
       .join(options.tagSearchOption === "Match All Tags" ? " AND " : " OR ");
 
@@ -82,24 +85,30 @@ export default class SqljsService {
           options.tagSearchOption === "Exclude All Tags" ? " NOT" : ""
         } (${tagList})`
       : "";
+    const page = `LIMIT ${this.pageSize} OFFSET ${
+      this.pageSize * options.page
+    }`;
 
-    console.log(`SELECT Title, PublishDate, Nsfw, Tags, Description, CorrelationId, PromptContent
-    FROM Prompts
-    WHERE ParentId IS NULL${titleSearch}${nsfwSearch}${tagSearch}
-    ORDER BY PublishDate ${
-      options.reverseSearch ? "ASC" : "DESC"
-    }, DateCreated ${options.reverseSearch ? "ASC" : "DESC"}
-    LIMIT 12`);
-
-    return await this.queryDb<HomePrompt>(
-      {
-        sql: `SELECT Title, PublishDate, Nsfw, Tags, Description, CorrelationId, PromptContent, DateCreated
-FROM Prompts
+    const baseSql = `FROM Prompts
 WHERE ParentId IS NULL${titleSearch}${nsfwSearch}${tagSearch}
 ORDER BY PublishDate ${options.reverseSearch ? "ASC" : "DESC"}, DateCreated ${
-          options.reverseSearch ? "ASC" : "DESC"
-        }
-LIMIT 12`,
+      options.reverseSearch ? "ASC" : "DESC"
+    }`;
+
+    const params: Record<string, unknown> = {
+      $title: options.title,
+    };
+
+    tags.forEach((tag, idx) => {
+      params[`$tag${idx}`] = tag;
+    });
+
+    const prompts = await this.queryDb<HomePrompt>(
+      {
+        sql: `SELECT Title, PublishDate, Nsfw, Tags, Description, CorrelationId, PromptContent, DateCreated
+${baseSql}
+${page}`,
+        params,
       },
       (vals) => ({
         Title: vals[0] as string,
@@ -112,6 +121,22 @@ LIMIT 12`,
         DateCreated: this.parseDate(vals[7]),
       })
     );
+
+    const count =
+      (
+        await this.queryDb<number>(
+          {
+            sql: `SELECT COUNT(*)
+${baseSql}`,
+            params,
+          },
+          (vals) => vals[0] as number
+        )
+      )[0] ?? 0;
+    return {
+      prompts,
+      pages: Math.floor(count / this.pageSize),
+    };
   };
 
   get = async (id: string): Promise<Prompt | undefined> => {
@@ -120,8 +145,9 @@ LIMIT 12`,
         {
           sql: `SELECT Id, AuthorsNote, Description, Memory, Nsfw, ParentId, PromptContent, PublishDate, Quests, Tags, Title, ScriptZip, NovelAiScenario, HoloAiScenario, CorrelationId, DateCreated, DateEdited
 FROM Prompts
-WHERE CorrelationId = ${id}
+WHERE CorrelationId = $id
 LIMIT 1`,
+          params: { $id: id },
         },
         (vals) => ({
           AuthorsNote: vals[1] as string,
@@ -225,4 +251,5 @@ export interface SearchOptions {
   tagSearchOption: TagSearchOptionsType;
   matchTagsExactly: boolean;
   reverseSearch: boolean;
+  page: number;
 }
