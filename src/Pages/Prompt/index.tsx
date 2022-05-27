@@ -27,7 +27,6 @@ const Prompt: Component = () => {
 
   createEffect(() => {
     (async () => {
-      console.log(sql.type && params.id);
       if (sql.type === "Loaded" && params.id) {
         try {
           const prompt = await sql.service.get(params.id);

@@ -16,15 +16,15 @@ const BottomNav: Component<{ currentPage: number; totalPages: number }> = (
         colorScheme={"neutral"}
         variant={"outline"}
       >
-        <Show when={props.currentPage !== 0 && behindPage() !== 0}>
-          <Button onClick={() => setSearchParams({ page: 0 })}>0</Button>
-          <Show when={0 < behindPage() - 1}>
+        <Show when={props.currentPage !== 1 && behindPage() !== 1}>
+          <Button onClick={() => setSearchParams({ page: 1 })}>1</Button>
+          <Show when={1 < behindPage() - 1}>
             <Button disabled variant={"ghost"}>
               ...
             </Button>
           </Show>
         </Show>
-        <Show when={behindPage() > -1}>
+        <Show when={behindPage() > 0}>
           <Button onClick={() => setSearchParams({ page: behindPage() })}>
             {behindPage()}
           </Button>

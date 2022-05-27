@@ -64,9 +64,8 @@ const Home: Component = () => {
   const [totalPages, setTotalPages] = createSignal<number>();
 
   const getPageFromParams = () => {
-    const parsedInt = Number.parseInt(searchParams.page ?? "0");
-    console.log(parsedInt);
-    return Number.isNaN(parsedInt) ? 0 : parsedInt;
+    const parsedInt = Number.parseInt(searchParams.page ?? "1");
+    return Number.isNaN(parsedInt) ? 1 : parsedInt;
   };
 
   const [currentPage, setCurrentPage] = createSignal<number>(
@@ -83,33 +82,69 @@ const Home: Component = () => {
     page: currentPage(),
   });
 
-  createEffect((prev) => {
-    if (prev === searchParams.tag) {
-      return searchParams.tag;
-    }
+  // createEffect((prev) => {
+  //   if (prev === searchParams.tag) {
+  //     return searchParams.tag;
+  //   }
 
-    const tag = searchParams.tag ?? "";
-    setTagSearch(tag);
-    performSearch({
-      ...searchOptions(),
-      tags: tag,
-    });
-    return searchParams.tag;
-  }, searchParams.tag);
+  //   const tag = searchParams.tag ?? "";
+  //   setTagSearch(tag);
+  //   console.log({
+  //     ...searchOptions(),
+  //     tags: tag,
+  //   });
+  //   performSearch({
+  //     ...searchOptions(),
+  //     tags: tag,
+  //   });
+  //   return searchParams.tag;
+  // }, searchParams.tag);
 
-  createEffect((prev) => {
-    if (prev === searchParams.page) {
-      return searchParams.page;
-    }
+  // createEffect((prev) => {
+  //   if (prev === searchParams.page) {
+  //     return searchParams.page;
+  //   }
 
-    const page = getPageFromParams();
-    setCurrentPage(page);
-    performSearch({
-      ...searchOptions(),
-      page: page,
-    });
-    return searchParams.page;
-  }, searchParams.page);
+  //   const page = getPageFromParams();
+  //   setCurrentPage(page);
+  //   console.log({
+  //     ...searchOptions(),
+  //     page: page,
+  //   });
+  //   performSearch({
+  //     ...searchOptions(),
+  //     page: page,
+  //   });
+  //   return searchParams.page;
+  // }, searchParams.page);
+
+  createEffect(
+    (prev: { tag?: string; page?: string }) => {
+      if (searchParams.tag === prev.tag && searchParams.page === prev.page) {
+        return { tag: searchParams.tag, page: searchParams.page };
+      }
+
+      const tag =
+        prev.tag !== searchParams.tag ? searchParams.tag ?? "" : tagSearch();
+      const page =
+        prev.page !== searchParams.page ? getPageFromParams() : currentPage();
+
+      setTagSearch(tag);
+      setCurrentPage(page);
+      console.log({
+        ...searchOptions(),
+        tags: tag,
+        page,
+      });
+      performSearch({
+        ...searchOptions(),
+        tags: tag,
+        page,
+      });
+      return { tag: searchParams.tag, page: searchParams.page };
+    },
+    { tag: searchParams.tag, page: searchParams.page }
+  );
 
   const [tagSearchOption, setTagSearchOption] =
     createSignal<TagSearchOptionsType>(TagSearchOptions[0]);

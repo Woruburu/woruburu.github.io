@@ -1,4 +1,4 @@
-import { parse } from "date-fns";
+import { parseISO } from "date-fns";
 import { QueryExecResult, SqlValue } from "sql.js";
 import { v4 } from "uuid";
 
@@ -14,13 +14,10 @@ export default class SqljsService {
   private sqliteBoolean = (value?: SqlValue): boolean =>
     (value as number) === 1;
 
-  private parseDate = (value?: SqlValue): Date =>
-    parse(value as string, "yyyy-MM-dd HH:mm:ss.SSSSSS", new Date());
+  private parseDate = (value?: SqlValue): Date => parseISO(value as string);
 
   private parseDateMaybe = (value?: SqlValue): Date | undefined =>
-    value
-      ? parse(value as string, "yyyy-MM-dd HH:mm:ss.SSSSSS", new Date())
-      : undefined;
+    typeof value === "string" ? parseISO(value) : undefined;
 
   private queryDb = <T>(
     exec: { sql: string; params?: Record<string, unknown> },
@@ -31,17 +28,21 @@ export default class SqljsService {
         const requestId = v4();
 
         this.worker.onmessage = (e) => {
-          if (e.data.id == requestId) {
-            if (e.data.error) {
-              reject(e.data.error);
-              return;
+          try {
+            if (e.data.id == requestId) {
+              if (e.data.error) {
+                reject(e.data.error);
+                return;
+              }
+              if (!e.data.results || e.data.results.length < 1) {
+                resolve([]);
+                return;
+              }
+              const results = e.data.results[0] as QueryExecResult;
+              resolve(results.values.map(map));
             }
-            if (!e.data.results || e.data.results.length < 1) {
-              resolve([]);
-              return;
-            }
-            const results = e.data.results[0] as QueryExecResult;
-            resolve(results.values.map(map));
+          } catch (error) {
+            reject(error);
           }
         };
 
@@ -86,7 +87,7 @@ export default class SqljsService {
         } (${tagList})`
       : "";
     const page = `LIMIT ${this.pageSize} OFFSET ${
-      this.pageSize * options.page
+      this.pageSize * (options.page - 1)
     }`;
 
     const baseSql = `FROM Prompts
