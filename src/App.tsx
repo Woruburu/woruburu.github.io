@@ -7,6 +7,7 @@ import { Component, createSignal, lazy, Suspense } from "solid-js";
 
 const Home = lazy(() => import("./Pages/Home"));
 const Prompt = lazy(() => import("./Pages/Prompt"));
+const Tags = lazy(() => import("./Pages/Tags"));
 
 const App: Component = () => {
   const [ref, setRef] = createSignal<HTMLDivElement>();
@@ -26,6 +27,14 @@ const App: Component = () => {
         <Container padding={"$2"}>
           <Routes>
             <Route
+              path="/"
+              element={
+                <Suspense fallback={<TopLoader el={ref()} />}>
+                  <Home />
+                </Suspense>
+              }
+            />
+            <Route
               path="/:id"
               element={
                 <Suspense fallback={<TopLoader el={ref()} />}>
@@ -34,10 +43,10 @@ const App: Component = () => {
               }
             />
             <Route
-              path="/"
+              path="/tags"
               element={
                 <Suspense fallback={<TopLoader el={ref()} />}>
-                  <Home />
+                  <Tags />
                 </Suspense>
               }
             />

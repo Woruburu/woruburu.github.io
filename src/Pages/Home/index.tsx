@@ -26,7 +26,7 @@ import {
   TagSearchOptions,
   TagSearchOptionsType,
 } from "Services/SqljsService";
-import { useSearchParams } from "solid-app-router";
+import { useNavigate, useSearchParams } from "solid-app-router";
 import {
   Component,
   createEffect,
@@ -49,6 +49,7 @@ type SearchState =
 const Home: Component = () => {
   const sql = useContext(SqljsServiceContext);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [searchState, setSearchState] = createSignal<SearchState>({
     type: "Loading",
@@ -82,42 +83,6 @@ const Home: Component = () => {
     page: currentPage(),
   });
 
-  // createEffect((prev) => {
-  //   if (prev === searchParams.tag) {
-  //     return searchParams.tag;
-  //   }
-
-  //   const tag = searchParams.tag ?? "";
-  //   setTagSearch(tag);
-  //   console.log({
-  //     ...searchOptions(),
-  //     tags: tag,
-  //   });
-  //   performSearch({
-  //     ...searchOptions(),
-  //     tags: tag,
-  //   });
-  //   return searchParams.tag;
-  // }, searchParams.tag);
-
-  // createEffect((prev) => {
-  //   if (prev === searchParams.page) {
-  //     return searchParams.page;
-  //   }
-
-  //   const page = getPageFromParams();
-  //   setCurrentPage(page);
-  //   console.log({
-  //     ...searchOptions(),
-  //     page: page,
-  //   });
-  //   performSearch({
-  //     ...searchOptions(),
-  //     page: page,
-  //   });
-  //   return searchParams.page;
-  // }, searchParams.page);
-
   createEffect(
     (prev: { tag?: string; page?: string }) => {
       if (searchParams.tag === prev.tag && searchParams.page === prev.page) {
@@ -131,11 +96,6 @@ const Home: Component = () => {
 
       setTagSearch(tag);
       setCurrentPage(page);
-      console.log({
-        ...searchOptions(),
-        tags: tag,
-        page,
-      });
       performSearch({
         ...searchOptions(),
         tags: tag,
@@ -150,6 +110,7 @@ const Home: Component = () => {
     createSignal<TagSearchOptionsType>(TagSearchOptions[0]);
   const [matchTagsExactly, setMatchTagsExactly] = createSignal<boolean>(true);
   const [reverseSearch, setReverseSearch] = createSignal<boolean>(false);
+  const [randomDisabled, setRandomDisabled] = createSignal<boolean>(false);
 
   const performSearch = (options: SearchOptions) => {
     if (sql.type === "Loaded") {
@@ -184,6 +145,18 @@ const Home: Component = () => {
   };
 
   const isLoading = () => searchState().type === "Loading";
+
+  const randomClick = async () => {
+    if (sql.type === "Loaded") {
+      setRandomDisabled(true);
+      try {
+        const id = await sql.service.getRandom();
+        navigate(`/${id}`);
+      } catch {
+        setRandomDisabled(false);
+      }
+    }
+  };
 
   return (
     <Stack direction={"column"} gap={"$3"}>
@@ -296,6 +269,9 @@ const Home: Component = () => {
               size={"sm"}
               colorScheme={"neutral"}
               variant={"outline"}
+              disabled={randomDisabled()}
+              loading={randomDisabled()}
+              onClick={randomClick}
             >
               Random
             </Button>

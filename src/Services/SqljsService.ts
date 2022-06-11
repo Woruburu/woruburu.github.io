@@ -74,9 +74,9 @@ export default class SqljsService {
       .map((tag) => tag.trim())
       .filter(Boolean);
     const tagList = tags
-      .map((tag, idx) =>
+      .map((_tag, idx) =>
         options.matchTagsExactly
-          ? `(Tags LIKE $tag${idx}||',%' OR Tags LIKE '%, '||$tag${idx}||',%')`
+          ? `(Tags LIKE $tag${idx}||',%' OR Tags LIKE '%, '||$tag${idx}||',%' OR Tags LIKE '%, '||$tag${idx})`
           : `Tags LIKE '%'||$tag${idx}||'%'`
       )
       .join(options.tagSearchOption === "Match All Tags" ? " AND " : " OR ");
@@ -198,6 +198,36 @@ WHERE ParentId = ${prompt.CorrelationId}`,
     }
 
     return prompt;
+  };
+
+  getRandom = async (): Promise<number> => {
+    const allIds = await this.queryDb(
+      {
+        sql: `SELECT CorrelationId
+FROM Prompts
+WHERE ParentId IS NULL`,
+      },
+      (vals) => vals[0] as number
+    );
+    return allIds[Math.floor(Math.random() * allIds.length)] ?? 0;
+  };
+
+  getTags = async (): Promise<{ [key: string]: number }> => {
+    let allTags = await this.queryDb(
+      {
+        sql: `SELECT Tags
+FROM Prompts
+WHERE ParentId IS NULL`,
+      },
+      (vals) => vals[0] as string
+    );
+    allTags = allTags
+      .join(",")
+      .split(",")
+      .map((tag) => tag.trim());
+    const tagGroups: { [key: string]: number } = {};
+    allTags.forEach((tag) => (tagGroups[tag] = 1 + (tagGroups[tag] ?? 0)));
+    return tagGroups;
   };
 }
 
