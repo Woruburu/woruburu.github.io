@@ -30,10 +30,10 @@ const HomePromptDisplay: Component<{ prompt: HomePrompt }> = (props) => {
             tabIndex={-1}
             noOfLines={2}
             _hover={{
-              "-webkit-line-clamp": "none",
+              "-webkit-line-clamp": "initial",
             }}
             _focus={{
-              "-webkit-line-clamp": "none",
+              "-webkit-line-clamp": "initial",
             }}
           >
             Created:{" "}
