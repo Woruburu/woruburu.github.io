@@ -353,7 +353,9 @@ const PromptDisplay: Component<{ prompt: Prompt }> = (props) => {
           <Box>
             <CardHeading>Description</CardHeading>
             <Card>
-              <code>{description}</code>
+              <Box as="code" css={{ whiteSpace: "pre-line" }}>
+                {description}
+              </Box>
             </Card>
           </Box>
         )}
@@ -363,7 +365,9 @@ const PromptDisplay: Component<{ prompt: Prompt }> = (props) => {
           <Box>
             <CardHeading>Prompt</CardHeading>
             <Card>
-              <code>{promptContent}</code>
+              <Box as="code" css={{ whiteSpace: "pre-line" }}>
+                {promptContent}
+              </Box>
             </Card>
             <Flex>
               <Text color={"$neutral10"} ml={"auto"}>
@@ -378,7 +382,9 @@ const PromptDisplay: Component<{ prompt: Prompt }> = (props) => {
           <Box>
             <CardHeading>Memory</CardHeading>
             <Card>
-              <code>{memory}</code>
+              <Box as="code" css={{ whiteSpace: "pre-line" }}>
+                {memory}
+              </Box>
             </Card>
             <Flex>
               <Text color={"$neutral10"} ml={"auto"}>
@@ -393,7 +399,9 @@ const PromptDisplay: Component<{ prompt: Prompt }> = (props) => {
           <Box>
             <CardHeading>Quests</CardHeading>
             <Card>
-              <code>{quests}</code>
+              <Box as="code" css={{ whiteSpace: "pre-line" }}>
+                {quests}
+              </Box>
             </Card>
             <Flex>
               <Text color={"$neutral10"} ml={"auto"}>
@@ -408,7 +416,9 @@ const PromptDisplay: Component<{ prompt: Prompt }> = (props) => {
           <Box>
             <CardHeading>Authors Note</CardHeading>
             <Card>
-              <code>{authorsNote}</code>
+              <Box as="code" css={{ whiteSpace: "pre-line" }}>
+                {authorsNote}
+              </Box>
             </Card>
             <Flex>
               <Text color={"$neutral10"} ml={"auto"}>
