@@ -65,7 +65,7 @@ export default class SqljsService {
       options.title !== "" ? ` AND Title LIKE '%'||$title||'%'` : "";
 
     const nsfwSearch =
-      options.nsfw !== "SFW & NSFW"
+      options.nsfw !== "SFW and NSFW"
         ? ` AND Nsfw = ${options.nsfw === "NSFW only" ? "1" : "0"}`
         : "";
 
@@ -265,7 +265,7 @@ export interface Child {
   Title: string;
 }
 
-export const NsfwSearch = <const>["SFW & NSFW", "SFW only", "NSFW only"];
+export const NsfwSearch = <const>["SFW and NSFW", "SFW only", "NSFW only"];
 export type NsfwSearchType = typeof NsfwSearch[number];
 
 export const TagSearchOptions = <const>[

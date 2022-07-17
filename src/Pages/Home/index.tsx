@@ -33,7 +33,6 @@ import {
   createSignal,
   For,
   Match,
-  onMount,
   Show,
   Switch,
   useContext,
@@ -48,18 +47,34 @@ type SearchState =
 
 const Home: Component = () => {
   const sql = useContext(SqljsServiceContext);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [searchState, setSearchState] = createSignal<SearchState>({
     type: "Loading",
   });
-  const [titleSearch, setTitleSearch] = createSignal<string>("");
-  const [nsfwSearch, setNsfwSearch] = createSignal<NsfwSearchType>(
-    NsfwSearch[0]
+  const [titleSearch, setTitleSearch] = createSignal<string>(
+    searchParams.title ?? ""
   );
+
+  const [nsfwSearch, setNsfwSearch] = createSignal<NsfwSearchType>(
+    searchParams.nsfw ? (searchParams.nsfw as NsfwSearchType) : NsfwSearch[0]
+  );
+
   const [tagSearch, setTagSearch] = createSignal<string>(
     searchParams.tag ?? ""
+  );
+  const [tagSearchOption, setTagSearchOption] =
+    createSignal<TagSearchOptionsType>(
+      searchParams.tagSearch
+        ? (searchParams.tagSearch as TagSearchOptionsType)
+        : TagSearchOptions[0]
+    );
+  const [matchTagsExactly, setMatchTagsExactly] = createSignal<boolean>(
+    searchParams.matchExact ? searchParams.matchExact === "true" : false
+  );
+  const [reverseSearch, setReverseSearch] = createSignal<boolean>(
+    searchParams.reverse ? searchParams.reverse === "true" : false
   );
 
   const [totalPages, setTotalPages] = createSignal<number>();
@@ -69,48 +84,51 @@ const Home: Component = () => {
     return Number.isNaN(parsedInt) ? 1 : parsedInt;
   };
 
-  const [currentPage, setCurrentPage] = createSignal<number>(
-    getPageFromParams()
-  );
-
-  const searchOptions = (): SearchOptions => ({
-    title: titleSearch(),
-    nsfw: nsfwSearch(),
-    tags: tagSearch(),
-    tagSearchOption: tagSearchOption(),
-    matchTagsExactly: matchTagsExactly(),
-    reverseSearch: reverseSearch(),
-    page: currentPage(),
-  });
-
-  createEffect(
-    (prev: { tag?: string; page?: string }) => {
-      if (searchParams.tag === prev.tag && searchParams.page === prev.page) {
-        return { tag: searchParams.tag, page: searchParams.page };
-      }
-
-      const tag =
-        prev.tag !== searchParams.tag ? searchParams.tag ?? "" : tagSearch();
-      const page =
-        prev.page !== searchParams.page ? getPageFromParams() : currentPage();
-
-      setTagSearch(tag);
-      setCurrentPage(page);
-      performSearch({
-        ...searchOptions(),
-        tags: tag,
-        page,
-      });
-      return { tag: searchParams.tag, page: searchParams.page };
-    },
-    { tag: searchParams.tag, page: searchParams.page }
-  );
-
-  const [tagSearchOption, setTagSearchOption] =
-    createSignal<TagSearchOptionsType>(TagSearchOptions[0]);
-  const [matchTagsExactly, setMatchTagsExactly] = createSignal<boolean>(true);
-  const [reverseSearch, setReverseSearch] = createSignal<boolean>(false);
   const [randomDisabled, setRandomDisabled] = createSignal<boolean>(false);
+
+  const onSubmit = () => {
+    setSearchParams({
+      title: titleSearch(),
+      nsfw: nsfwSearch(),
+      tags: tagSearch(),
+      tagSearch: tagSearchOption(),
+      matchExact: matchTagsExactly(),
+      reverse: reverseSearch(),
+      page: 1,
+    });
+  };
+
+  createEffect(() => {
+    const nsfw = searchParams.nsfw
+      ? (searchParams.nsfw as NsfwSearchType)
+      : NsfwSearch[0];
+    const tagSearchOption = searchParams.tagSearch
+      ? (searchParams.tagSearch as TagSearchOptionsType)
+      : TagSearchOptions[0];
+    const matchExact = searchParams.matchExact
+      ? searchParams.matchExact === "true"
+      : false;
+    const reverse = searchParams.reverse
+      ? searchParams.reverse === "true"
+      : false;
+
+    setTitleSearch(searchParams.title ?? "");
+    setTagSearch(searchParams.tags ?? "");
+    setNsfwSearch(nsfw);
+    setTagSearchOption(tagSearchOption);
+    setReverseSearch(reverse);
+    setMatchTagsExactly(matchExact);
+
+    performSearch({
+      title: searchParams.title ?? "",
+      nsfw: nsfw,
+      tags: searchParams.tags ?? "",
+      tagSearchOption: tagSearchOption,
+      matchTagsExactly: matchExact,
+      reverseSearch: reverse,
+      page: getPageFromParams(),
+    });
+  });
 
   const performSearch = (options: SearchOptions) => {
     if (sql.type === "Loaded") {
@@ -129,10 +147,6 @@ const Home: Component = () => {
       })();
     }
   };
-
-  onMount(() => {
-    performSearch(searchOptions());
-  });
 
   const isError = () => {
     const state = searchState();
@@ -163,7 +177,8 @@ const Home: Component = () => {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          performSearch({ ...searchOptions(), page: 0 });
+          onSubmit();
+          // performSearch({ ...searchOptions(), page: 0 });
         }}
       >
         <Flex direction={{ "@initial": "column", "@md": "row" }}>
@@ -303,7 +318,10 @@ const Home: Component = () => {
 
       <Show when={totalPages()}>
         {(totalPages) => (
-          <BottomNav currentPage={currentPage()} totalPages={totalPages} />
+          <BottomNav
+            currentPage={getPageFromParams()}
+            totalPages={totalPages}
+          />
         )}
       </Show>
     </Stack>
