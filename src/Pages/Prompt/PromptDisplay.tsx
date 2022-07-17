@@ -195,7 +195,7 @@ const WorldInfos: Component<{
   return (
     <Show when={props.worldInfos.length > 0}>
       <Box>
-        <Flex>
+        <Flex marginBottom={"$2"}>
           <CardHeading>World Info</CardHeading>
           <Button
             colorScheme={"neutral"}
@@ -221,12 +221,9 @@ const WorldInfos: Component<{
             Download AID JSON
           </Button>
         </Flex>
-        <For each={props.worldInfos}>
-          {(worldInfo) => (
-            <SimpleGrid
-              columns={{ "@initial": 1, "@md": 2, "@2xl": 3 }}
-              gap="$6"
-            >
+        <SimpleGrid columns={{ "@initial": 1, "@md": 2, "@2xl": 3 }} gap="$6">
+          <For each={props.worldInfos}>
+            {(worldInfo) => (
               <Card>
                 <Heading level={3} size={"xl"} mb={"$2"}>
                   Keys
@@ -238,9 +235,9 @@ const WorldInfos: Component<{
                 </Heading>
                 <code>{worldInfo.Entry}</code>
               </Card>
-            </SimpleGrid>
-          )}
-        </For>
+            )}
+          </For>
+        </SimpleGrid>
       </Box>
     </Show>
   );

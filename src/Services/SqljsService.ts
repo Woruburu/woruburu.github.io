@@ -136,7 +136,7 @@ ${baseSql}`,
       )[0] ?? 0;
     return {
       prompts,
-      pages: Math.floor(count / this.pageSize),
+      pages: Math.ceil(count / this.pageSize),
     };
   };
 
