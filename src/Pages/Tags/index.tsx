@@ -61,7 +61,7 @@ const TagGrid: Component<{ tags: Tags }> = (props) => {
               </Heading>
               <For each={Object.entries(tags).sort()}>
                 {([tag, count]) => (
-                  <Anchor width={"100%"} as={Link} href={`/?tag=${tag}`}>
+                  <Anchor width={"100%"} as={Link} href={`/?tags=${tag}`}>
                     <ButtonGroup width={"100%"} attached>
                       <Button
                         type="button"
