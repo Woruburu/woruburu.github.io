@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
 import eslintPlugin from "vite-plugin-eslint";
+import { VitePWA } from "vite-plugin-pwa";
 import solidPlugin from "vite-plugin-solid";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -19,10 +20,17 @@ export default defineConfig({
         },
       ],
     }),
+    VitePWA({
+      registerType: "autoUpdate",
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,db,wasm}"],
+        maximumFileSizeToCacheInBytes: 54525952,
+      },
+    }),
   ],
   build: {
     target: "esnext",
     sourcemap: true,
-    outDir: './docs'
+    outDir: "./docs",
   },
 });
