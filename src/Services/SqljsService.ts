@@ -151,6 +151,7 @@ LIMIT 1`,
           params: { $id: id },
         },
         (vals) => ({
+          Id: vals[0] as string,
           AuthorsNote: vals[1] as string,
           Description: vals[2] as string,
           Memory: vals[3] as string,
@@ -178,7 +179,7 @@ LIMIT 1`,
         {
           sql: `SELECT Entry, Keys
 FROM WorldInfos
-WHERE PromptId = ${prompt.CorrelationId}`,
+WHERE PromptId = ${prompt.Id}`,
         },
         (vals) => {
           return {
@@ -191,7 +192,7 @@ WHERE PromptId = ${prompt.CorrelationId}`,
         {
           sql: `SELECT CorrelationId, Title
 FROM Prompts
-WHERE ParentId = ${prompt.CorrelationId}`,
+WHERE ParentId = ${prompt.Id}`,
         },
         (vals) => ({ Id: vals[0] as number, Title: vals[1] as string })
       );
@@ -243,6 +244,7 @@ export interface HomePrompt {
 }
 
 export interface Prompt extends HomePrompt {
+  Id: string;
   AuthorsNote?: string;
   Memory?: string;
   ParentId?: number;
@@ -266,14 +268,14 @@ export interface Child {
 }
 
 export const NsfwSearch = <const>["SFW and NSFW", "SFW only", "NSFW only"];
-export type NsfwSearchType = typeof NsfwSearch[number];
+export type NsfwSearchType = (typeof NsfwSearch)[number];
 
 export const TagSearchOptions = <const>[
   "Match All Tags",
   "Match Any Tag",
   "Exclude All Tags",
 ];
-export type TagSearchOptionsType = typeof TagSearchOptions[number];
+export type TagSearchOptionsType = (typeof TagSearchOptions)[number];
 
 export interface SearchOptions {
   title: string;
